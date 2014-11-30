@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="string_1">this is string</string>
+    <integer name="int_1">9527</integer>
+    <bool name="bool_1">true</bool>
+    <color name="color_1">#ff5500</color>
+    <dimen name="dimen_1">5dip</dimen>
+    <drawable name="drawable_1">#ff5500</drawable>
+    <integer-array name="ia_1">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </integer-array>
+    <string-array name="sa_1">
+        <item>a</item>
+        <item>b</item>
+        <item>c</item>
+        <item>d</item>
+    </string-array>
+    <array name="array_1">
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+    </array>
+
+    <!--    <item name="id_1" type="id" />
+        <fraction name="fraction_1">200%</fraction>
+        <plurals name="plurals_1">
+            <item quantity="one">egg</item>
+            <item quantity="many">eggs</item>
+        </plurals>-->
+</resources>
