@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
-import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 
@@ -272,7 +271,7 @@ public class Injector {
      * case ResType.TYPE_STYLE:
      *
      * */
-    private static final void Res(FindableView findableView, Resources res, Field field) throws IllegalAccessException, IllegalArgumentException {
+    private static final void injectRes(FindableView findableView, Resources res, Field field) throws IllegalAccessException, IllegalArgumentException {
         Res _Res = field.getAnnotation(Res.class);
         if (null == _Res) {
             return;
@@ -310,7 +309,7 @@ public class Injector {
         }
     }
 
-    private static final void View(FindableView findableView, Field field) throws IllegalAccessException, IllegalArgumentException, NoSuchMethodException {
+    private static final void injectView(FindableView findableView, Field field) throws IllegalAccessException, IllegalArgumentException, NoSuchMethodException {
         View _View = field.getAnnotation(View.class);
         if (null == _View) {
             return;
@@ -342,7 +341,7 @@ public class Injector {
         }
     }
 
-    private static void Click(FindableView findableView, final Method method) {
+    private static void injectClick(FindableView findableView, final Method method) {
         Click _inClick = method.getAnnotation(Click.class);
         if (null == _inClick) {
             return;
@@ -369,8 +368,8 @@ public class Injector {
             boolean f = field.isAccessible();
             field.setAccessible(true);
             try {
-                Res(findableView, res, field);
-                View(findableView, field);
+                injectRes(findableView, res, field);
+                injectView(findableView, field);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (IllegalArgumentException e) {
@@ -384,7 +383,7 @@ public class Injector {
 
         Method[] methods = findableView.getObject().getClass().getDeclaredMethods();
         for (Method method : methods) {
-            Click(findableView, method);
+            injectClick(findableView, method);
         }
     }
 
