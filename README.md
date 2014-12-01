@@ -3,6 +3,8 @@
 
 **如果需要在工作中使用，可以参考更严谨的视图注入框架 [butterknife](https://github.com/JakeWharton/butterknife)**
 
+*暂不支持绑定继承而来的方法*
+
 ##使用方法
 
 ####绑定资源
