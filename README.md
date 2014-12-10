@@ -42,7 +42,7 @@
     ListView lv;
 
     //将一个click方法绑定到多个view
-    @Injector.Click(ones = {R.id.btn_2, R.id.btn_3, R.id.btn_4})
+    @Injector.Click({R.id.btn_2, R.id.btn_3, R.id.btn_4})
     private void btnClickB(View view) {
         Tip.tip(this, ((Button) view).getText());
     }
@@ -52,6 +52,8 @@
     Injector.inject(view);
     或者
     Injector.inject(activity);
+    或者
+    Injector.inject(fragment);
 
 ###修改日志
 
