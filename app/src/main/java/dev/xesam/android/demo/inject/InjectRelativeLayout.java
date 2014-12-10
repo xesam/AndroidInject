@@ -45,7 +45,7 @@ public class InjectRelativeLayout extends RelativeLayout {
         Injector.inject(this);
     }
 
-    @Injector.Click(one = R.id.button3)
+    @Injector.Click(R.id.button3)
     public void onButtonClick(View view) {
         Tip.tip(getContext(), ((Button) view).getText());
     }

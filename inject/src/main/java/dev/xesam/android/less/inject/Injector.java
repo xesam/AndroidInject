@@ -2,6 +2,7 @@ package dev.xesam.android.less.inject;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
@@ -30,9 +31,7 @@ public class Injector {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public static @interface Click {
-        int one() default Injector.DEFAULT_INVALID_VIEW_ID;
-
-        int[] ones() default {};
+        int[] value() default {};
     }
 
     /**
@@ -211,6 +210,59 @@ public class Injector {
         }
     }
 
+    @SuppressLint("NewApi")
+    static class InnerFindFragment implements FindableView {
+
+        private Fragment fragment;
+        private android.view.View view;
+
+        public InnerFindFragment(Fragment fragment) {
+            this.fragment = fragment;
+            this.view = fragment.getView();
+        }
+
+        @Override
+        public android.view.View findViewById(int viewId) {
+            return view.findViewById(viewId);
+        }
+
+        @Override
+        public Object getObject() {
+            return view;
+        }
+
+        @Override
+        public Resources getResources() {
+            return fragment.getResources();
+        }
+    }
+
+    static class InnerFindSupportFragment implements FindableView {
+
+        private android.support.v4.app.Fragment fragment;
+        private android.view.View view;
+
+        public InnerFindSupportFragment(android.support.v4.app.Fragment fragment) {
+            this.fragment = fragment;
+            this.view = fragment.getView();
+        }
+
+        @Override
+        public android.view.View findViewById(int viewId) {
+            return view.findViewById(viewId);
+        }
+
+        @Override
+        public Object getObject() {
+            return view;
+        }
+
+        @Override
+        public Resources getResources() {
+            return fragment.getResources();
+        }
+    }
+
     static class InnerFindActivity implements FindableView {
 
         private Activity activity;
@@ -347,14 +399,9 @@ public class Injector {
             return;
         }
 
-        int viewId = _inClick.one();
-        int[] viewIds = _inClick.ones();
+        int[] viewIds = _inClick.value();
 
         OnClickListener onClickListener = new InjectListener(findableView.getObject(), method);
-        if (viewId != DEFAULT_INVALID_VIEW_ID) {
-            findableView.findViewById(viewId).setOnClickListener(onClickListener);
-        }
-
         for (int _viewId : viewIds) {
             findableView.findViewById(_viewId).setOnClickListener(onClickListener);
         }
@@ -393,5 +440,13 @@ public class Injector {
 
     public static final void inject(Activity activity) {
         inject(new InnerFindActivity(activity));
+    }
+
+    public static final void inject(Fragment fragment) {
+        inject(new InnerFindFragment(fragment));
+    }
+
+    public static final void inject(android.support.v4.app.Fragment fragment) {
+        inject(new InnerFindSupportFragment(fragment));
     }
 }

@@ -69,7 +69,7 @@ public class InjectActivity extends Activity {
         return true;
     }
 
-    @Injector.Click(ones = {R.id.btn_2, R.id.btn_3, R.id.btn_4})
+    @Injector.Click({R.id.btn_2, R.id.btn_3, R.id.btn_4})
     private void btnClickB(View view) {
         Tip.tip(this, ((Button) view).getText());
     }

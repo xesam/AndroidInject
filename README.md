@@ -53,6 +53,12 @@
     或者
     Injector.inject(activity);
 
+###修改日志
+
+####12.10
+1. 增加对fragment的支持，需要区分 Fragment 与 v4.Fragment
+2. 修改注解，取消InjectClick 中 one与ones的显式区分
+
 ##示例
 参见app工程
 
