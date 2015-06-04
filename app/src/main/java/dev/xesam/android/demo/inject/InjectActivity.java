@@ -45,7 +45,7 @@ public class InjectActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.inject_activity);
         Injector.inject(this);
-        lv.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[]{"a", "b", "c", "d", "e"}));
+        lv.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{"a", "b", "c", "d", "e"}));
 
         Tip.log(string_1);
         Tip.log(sa.length);
@@ -71,7 +71,7 @@ public class InjectActivity extends Activity {
 
     @Injector.Click({R.id.btn_2, R.id.btn_3, R.id.btn_4})
     private void btnClickB(View view) {
-        Tip.tip(this, ((Button) view).getText());
+        ((Button) view).setText(string_1);
     }
 
     public void itemClick(AdapterView<?> parent, View view, int position, long id) {

@@ -1,11 +1,13 @@
 package dev.xesam.android.less.inject;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
+import android.os.Build;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 
@@ -16,31 +18,150 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by xesam[416249980@qq.com] on 14-11-25.
  */
 public class Injector {
 
+    ///////////////////////////////////////////////////
+
+    /**
+     * provider view and resource
+     */
+    interface ViewFinder {
+        android.view.View findViewById(int viewId);
+
+        Object getObject();
+
+        Resources getResources();
+    }
+
+    static class SimpleViewFinder implements ViewFinder {
+
+        private android.view.View view;
+
+        public SimpleViewFinder(android.view.View view) {
+            this.view = view;
+        }
+
+        @Override
+        public android.view.View findViewById(int viewId) {
+            return view.findViewById(viewId);
+        }
+
+        @Override
+        public Object getObject() {
+            return view;
+        }
+
+        @Override
+        public Resources getResources() {
+            return view.getResources();
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    static class FragmentViewFinder implements ViewFinder {
+
+        private Fragment target;
+        private android.view.View view;
+
+        public FragmentViewFinder(Fragment fragment) {
+            this.target = fragment;
+            this.view = fragment.getView();
+        }
+
+        @Override
+        public android.view.View findViewById(int viewId) {
+            return view.findViewById(viewId);
+        }
+
+        @Override
+        public Object getObject() {
+            return view;
+        }
+
+        @Override
+        public Resources getResources() {
+            return target.getResources();
+        }
+    }
+
+    static class SupportFragmentViewFinder implements ViewFinder {
+
+        private android.support.v4.app.Fragment target;
+        private android.view.View view;
+
+        public SupportFragmentViewFinder(android.support.v4.app.Fragment fragment) {
+            this.target = fragment;
+            this.view = fragment.getView();
+        }
+
+        @Override
+        public android.view.View findViewById(int viewId) {
+            return view.findViewById(viewId);
+        }
+
+        @Override
+        public Object getObject() {
+            return view;
+        }
+
+        @Override
+        public Resources getResources() {
+            return target.getResources();
+        }
+    }
+
+    static class ActivityViewFinder implements ViewFinder {
+
+        private Activity target;
+
+        public ActivityViewFinder(Activity activity) {
+            this.target = activity;
+        }
+
+        @Override
+        public android.view.View findViewById(int viewId) {
+            return target.findViewById(viewId);
+        }
+
+        @Override
+        public Object getObject() {
+            return target;
+        }
+
+        @Override
+        public Resources getResources() {
+            return target.getResources();
+        }
+    }
+
+
+    ///////////////////////////////////////////////////
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
-    public static @interface Res {
+    public @interface Res {
         int value();
     }
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
-    public static @interface Click {
+    public @interface Click {
         int[] value() default {};
     }
 
     /**
-     * 注意与android.view.View冲突
+     * warning android.view.View conflict
      */
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
-    public static @interface View {
+    public @interface View {
         int id() default Injector.DEFAULT_INVALID_VIEW_ID;
 
         String click() default Injector.DEFAULT_INVALID_METHOD;
@@ -53,7 +174,6 @@ public class Injector {
     }
 
     static final class ResType {
-
         public static final int TYPE_LAYOUT = 1;
         public static final int TYPE_MENU = 2;
         public static final int TYPE_STYLE = 3;
@@ -85,46 +205,50 @@ public class Injector {
         private static final String TYPE_FRACTION_DESC = "fraction";
         private static final String TYPE_PLURALS_DESC = "plurals";
 
-        public static final int getResType(Resources res, int resId) {
-            String typeName = res.getResourceTypeName(resId);
-            int typeCode = TYPE_UNKNOWN;
-            if (TYPE_LAYOUT_DESC.equals(typeName)) {
-                typeCode = TYPE_LAYOUT;
-            } else if (TYPE_MENU_DESC.equals(typeName)) {
-                typeCode = TYPE_MENU;
-            } else if (TYPE_STYLE_DESC.equals(typeName)) {
-                typeCode = TYPE_STYLE;
-            } else if (TYPE_ANIM_DESC.equals(typeName)) {
-                typeCode = TYPE_ANIM;
-            } else if (TYPE_DRAWABLE_DESC.equals(typeName)) {
-                typeCode = TYPE_DRAWABLE;
-            } else if (TYPE_DIMEN_DESC.equals(typeName)) {
-                typeCode = TYPE_DIMEN;
-            } else if (TYPE_STRING_DESC.equals(typeName)) {
-                typeCode = TYPE_STRING;
-            } else if (TYPE_COLOR_DESC.equals(typeName)) {
-                typeCode = TYPE_COLOR;
-            } else if (TYPE_BOOL_DESC.equals(typeName)) {
-                typeCode = TYPE_BOOL;
-            } else if (TYPE_ID_DESC.equals(typeName)) {
-                typeCode = TYPE_ID;
-            } else if (TYPE_INTEGER_DESC.equals(typeName)) {
-                typeCode = TYPE_INTEGER;
-            } else if (TYPE_ARRAY_DESC.equals(typeName)) {
-                typeCode = TYPE_ARRAY;
-            } else if (TYPE_FRACTION_DESC.equals(typeName)) {
-                typeCode = TYPE_FRACTION;
-            } else if (TYPE_PLURALS_DESC.equals(typeName)) {
-                typeCode = TYPE_PLURALS;
-            }
 
+        static Map<String, Integer> mapper;
+
+        static {
+            mapper = new HashMap<>();
+            mapper.put(TYPE_LAYOUT_DESC, TYPE_LAYOUT);
+            mapper.put(TYPE_MENU_DESC, TYPE_MENU);
+            mapper.put(TYPE_STYLE_DESC, TYPE_STYLE);
+            mapper.put(TYPE_ANIM_DESC, TYPE_ANIM);
+            mapper.put(TYPE_DRAWABLE_DESC, TYPE_DRAWABLE);
+            mapper.put(TYPE_DIMEN_DESC, TYPE_DIMEN);
+            mapper.put(TYPE_STRING_DESC, TYPE_STRING);
+            mapper.put(TYPE_COLOR_DESC, TYPE_COLOR);
+            mapper.put(TYPE_BOOL_DESC, TYPE_BOOL);
+            mapper.put(TYPE_ID_DESC, TYPE_ID);
+            mapper.put(TYPE_INTEGER_DESC, TYPE_INTEGER);
+            mapper.put(TYPE_ARRAY_DESC, TYPE_ARRAY);
+            mapper.put(TYPE_FRACTION_DESC, TYPE_FRACTION);
+            mapper.put(TYPE_PLURALS_DESC, TYPE_PLURALS);
+        }
+
+        static int getResType(Resources res, int resId) {
+            String typeName = res.getResourceTypeName(resId);
+            Integer typeCode = mapper.get(typeName);
+            if (typeCode == null) {
+                return TYPE_UNKNOWN;
+            }
             return typeCode;
         }
     }
 
+    public static final int DEFAULT_INVALID_VIEW_ID = -1;
+    public static final String DEFAULT_INVALID_METHOD = "";
+
+    private static final Class<?>[] CLICK_TYPES = {android.view.View.class};
+    private static final Class<?>[] ITEM_CLICK_TYPES = {AdapterView.class, android.view.View.class, int.class, long.class};
+
     static class InjectListener implements OnClickListener, android.view.View.OnLongClickListener, AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
 
-        public static final <T> T requireNonNull(T o) {
+        /**
+         * ref : Objects.requireNonNull(T)
+         */
+
+        public static <T> T requireNonNull(T o) {
             if (o == null) {
                 throw new NullPointerException();
             }
@@ -158,7 +282,7 @@ public class Injector {
 
         @Override
         public boolean onItemLongClick(AdapterView<?> parent, android.view.View view, int position, long id) {
-            return (Boolean) InjectListener.<Object>requireNonNull(onInvoke(parent, view, position, id));
+            return (Boolean) InjectListener.requireNonNull(onInvoke(parent, view, position, id));
         }
 
         @Override
@@ -168,7 +292,7 @@ public class Injector {
 
         @Override
         public boolean onLongClick(android.view.View v) {
-            return (Boolean) InjectListener.<Object>requireNonNull(onInvoke(v));
+            return (Boolean) InjectListener.requireNonNull(onInvoke(v));
         }
 
         @Override
@@ -178,123 +302,10 @@ public class Injector {
 
     }
 
-    static interface FindableView {
-        android.view.View findViewById(int viewId);
-
-        Object getObject();
-
-        Resources getResources();
-    }
-
-    static class InnerFindView implements FindableView {
-
-        private android.view.View view;
-
-        public InnerFindView(android.view.View view) {
-            this.view = view;
-        }
-
-        @Override
-        public android.view.View findViewById(int viewId) {
-            return view.findViewById(viewId);
-        }
-
-        @Override
-        public Object getObject() {
-            return view;
-        }
-
-        @Override
-        public Resources getResources() {
-            return view.getResources();
-        }
-    }
-
-    @SuppressLint("NewApi")
-    static class InnerFindFragment implements FindableView {
-
-        private Fragment fragment;
-        private android.view.View view;
-
-        public InnerFindFragment(Fragment fragment) {
-            this.fragment = fragment;
-            this.view = fragment.getView();
-        }
-
-        @Override
-        public android.view.View findViewById(int viewId) {
-            return view.findViewById(viewId);
-        }
-
-        @Override
-        public Object getObject() {
-            return view;
-        }
-
-        @Override
-        public Resources getResources() {
-            return fragment.getResources();
-        }
-    }
-
-    static class InnerFindSupportFragment implements FindableView {
-
-        private android.support.v4.app.Fragment fragment;
-        private android.view.View view;
-
-        public InnerFindSupportFragment(android.support.v4.app.Fragment fragment) {
-            this.fragment = fragment;
-            this.view = fragment.getView();
-        }
-
-        @Override
-        public android.view.View findViewById(int viewId) {
-            return view.findViewById(viewId);
-        }
-
-        @Override
-        public Object getObject() {
-            return view;
-        }
-
-        @Override
-        public Resources getResources() {
-            return fragment.getResources();
-        }
-    }
-
-    static class InnerFindActivity implements FindableView {
-
-        private Activity activity;
-
-        public InnerFindActivity(Activity activity) {
-            this.activity = activity;
-        }
-
-        @Override
-        public android.view.View findViewById(int viewId) {
-            return activity.findViewById(viewId);
-        }
-
-        @Override
-        public Object getObject() {
-            return activity;
-        }
-
-        @Override
-        public Resources getResources() {
-            return activity.getResources();
-        }
-    }
-
-    public static final int DEFAULT_INVALID_VIEW_ID = -1;
-    public static final String DEFAULT_INVALID_METHOD = "";
-
-    private static final Class<?>[] CLICK_TYPES = {android.view.View.class};
-    private static final Class<?>[] ITEM_CLICK_TYPES = {AdapterView.class, android.view.View.class, int.class, long.class};
+    ///////////////////////////////////////////////////
 
     @SuppressLint("Recycle")
-    private static void injectArray(Field field, Object receiver, Resources res, int resId) throws IllegalAccessException, IllegalArgumentException, NotFoundException {
+    private static void _injectArray(Field field, Object receiver, Resources res, int resId) throws IllegalAccessException, IllegalArgumentException, NotFoundException {
         Class<?> fieldType = field.getType();
         if (String[].class.isAssignableFrom(fieldType)) {
             field.set(receiver, res.getStringArray(resId));
@@ -305,7 +316,7 @@ public class Injector {
         }
     }
 
-    private static void injectColor(Field field, Object receiver, Resources res, int resId) throws IllegalAccessException, IllegalArgumentException, NotFoundException {
+    private static void _injectColor(Field field, Object receiver, Resources res, int resId) throws IllegalAccessException, IllegalArgumentException, NotFoundException {
         Class<?> fieldType = field.getType();
         if (ColorStateList.class.isAssignableFrom(fieldType)) {
             field.set(receiver, res.getColorStateList(resId));
@@ -323,24 +334,24 @@ public class Injector {
      * case ResType.TYPE_STYLE:
      *
      * */
-    private static final void injectRes(FindableView findableView, Resources res, Field field) throws IllegalAccessException, IllegalArgumentException {
+    private static final void _injectRes(ViewFinder viewFinder, Resources res, Field field) throws IllegalAccessException, IllegalArgumentException {
         Res _Res = field.getAnnotation(Res.class);
         if (null == _Res) {
             return;
         }
         int resId = _Res.value();
         int resType = ResType.getResType(res, resId);
-        Object obj = findableView.getObject();
+        Object obj = viewFinder.getObject();
 
         switch (resType) {
             case ResType.TYPE_ARRAY:
-                injectArray(field, obj, res, resId);
+                _injectArray(field, obj, res, resId);
                 break;
             case ResType.TYPE_BOOL:
                 field.set(obj, res.getBoolean(resId));
                 break;
             case ResType.TYPE_COLOR:
-                injectColor(field, obj, res, resId);
+                _injectColor(field, obj, res, resId);
                 break;
             case ResType.TYPE_DIMEN:
                 field.set(obj, res.getDimension(resId));
@@ -361,14 +372,14 @@ public class Injector {
         }
     }
 
-    private static final void injectView(FindableView findableView, Field field) throws IllegalAccessException, IllegalArgumentException, NoSuchMethodException {
+    private static void _injectView(ViewFinder viewFinder, Field field) throws IllegalAccessException, IllegalArgumentException, NoSuchMethodException {
         View _View = field.getAnnotation(View.class);
         if (null == _View) {
             return;
         }
         int viewId = _View.id();
-        android.view.View view = findableView.findViewById(viewId);
-        final Object receiver = findableView.getObject();
+        android.view.View view = viewFinder.findViewById(viewId);
+        final Object receiver = viewFinder.getObject();
         field.set(receiver, view);
 
         if (!_View.click().equals(DEFAULT_INVALID_METHOD)) {
@@ -393,7 +404,7 @@ public class Injector {
         }
     }
 
-    private static void injectClick(FindableView findableView, final Method method) {
+    private static void injectClick(ViewFinder viewFinder, final Method method) {
         Click _inClick = method.getAnnotation(Click.class);
         if (null == _inClick) {
             return;
@@ -401,52 +412,50 @@ public class Injector {
 
         int[] viewIds = _inClick.value();
 
-        OnClickListener onClickListener = new InjectListener(findableView.getObject(), method);
+        OnClickListener onClickListener = new InjectListener(viewFinder.getObject(), method);
         for (int _viewId : viewIds) {
-            findableView.findViewById(_viewId).setOnClickListener(onClickListener);
+            viewFinder.findViewById(_viewId).setOnClickListener(onClickListener);
         }
     }
 
-    private static final void inject(FindableView findableView) {
-        Resources res = findableView.getResources();
-        Field[] fields = findableView.getObject().getClass().getDeclaredFields();
+    private static void inject(ViewFinder viewFinder) {
+        Resources res = viewFinder.getResources();
+        Field[] fields = viewFinder.getObject().getClass().getDeclaredFields();
 
         for (Field field : fields) {
             boolean f = field.isAccessible();
             field.setAccessible(true);
             try {
-                injectRes(findableView, res, field);
-                injectView(findableView, field);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
+                _injectRes(viewFinder, res, field);
+                _injectView(viewFinder, field);
             } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } finally {
                 field.setAccessible(f);
             }
         }
 
-        Method[] methods = findableView.getObject().getClass().getDeclaredMethods();
+        Method[] methods = viewFinder.getObject().getClass().getDeclaredMethods();
         for (Method method : methods) {
-            injectClick(findableView, method);
+            injectClick(viewFinder, method);
         }
     }
 
-    public static final void inject(android.view.View view) {
-        inject(new InnerFindView(view));
+    public static void inject(android.view.View view) {
+        inject(new SimpleViewFinder(view));
     }
 
-    public static final void inject(Activity activity) {
-        inject(new InnerFindActivity(activity));
+    public static void inject(Activity activity) {
+        inject(new ActivityViewFinder(activity));
     }
 
-    public static final void inject(Fragment fragment) {
-        inject(new InnerFindFragment(fragment));
+    public static void inject(Fragment fragment) {
+        inject(new FragmentViewFinder(fragment));
     }
 
-    public static final void inject(android.support.v4.app.Fragment fragment) {
-        inject(new InnerFindSupportFragment(fragment));
+    public static void inject(android.support.v4.app.Fragment fragment) {
+        inject(new SupportFragmentViewFinder(fragment));
     }
 }

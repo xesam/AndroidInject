@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="string_1">this is string</string>
+    <string name="string_1">InjectorSample</string>
     <integer name="int_1">9527</integer>
     <bool name="bool_1">true</bool>
     <color name="color_1">#ff5500</color>
