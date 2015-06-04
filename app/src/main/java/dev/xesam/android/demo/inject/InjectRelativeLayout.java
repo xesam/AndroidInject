@@ -3,7 +3,6 @@ package dev.xesam.android.demo.inject;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 
@@ -14,15 +13,12 @@ import dev.xesam.android.less.inject.Injector;
  */
 public class InjectRelativeLayout extends RelativeLayout {
 
-    @Injector.View(
-            id = R.id.button1,
-            click = "onButtonClick"
-    )
+    @Injector.View(R.id.button1)
     private Button btn1;
-    @Injector.View(id = R.id.button2,
-            click = "onButtonClick")
+    @Injector.View(R.id.button2)
     private Button btn2;
 
+    @Injector.View(R.id.button3)
     private Button btn3;
 
     public InjectRelativeLayout(Context context) {
@@ -45,8 +41,8 @@ public class InjectRelativeLayout extends RelativeLayout {
         Injector.inject(this);
     }
 
-    @Injector.Click(R.id.button3)
-    public void onButtonClick(View view) {
-        Tip.tip(getContext(), ((Button) view).getText());
+    @Injector.Click({R.id.button1, R.id.button2, R.id.button3})
+    public void onButtonClick(Button view) {
+        Tip.tip(getContext(), view.getText());
     }
 }

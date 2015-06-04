@@ -11,6 +11,7 @@ import android.os.Build;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 
+import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -143,16 +144,13 @@ public class Injector {
 
     ///////////////////////////////////////////////////
 
+    public static final int DEFAULT_INVALID_VIEW_ID = -1;
+    public static final String DEFAULT_INVALID_METHOD = "";
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface Res {
         int value();
-    }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    public @interface Click {
-        int[] value() default {};
     }
 
     /**
@@ -162,16 +160,34 @@ public class Injector {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface View {
-        int id() default Injector.DEFAULT_INVALID_VIEW_ID;
-
-        String click() default Injector.DEFAULT_INVALID_METHOD;
-
-        String longClick() default Injector.DEFAULT_INVALID_METHOD;
-
-        String itemClick() default Injector.DEFAULT_INVALID_METHOD;
-
-        String itemLongClick() default Injector.DEFAULT_INVALID_METHOD;
+        int value() default Injector.DEFAULT_INVALID_VIEW_ID;
     }
+
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface Click {
+        int[] value() default {};
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface LongClick {
+        int[] value() default {};
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface ItemClick {
+        int[] value() default {};
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface ItemLongClick {
+        int[] value() default {};
+    }
+
 
     static final class ResType {
         public static final int TYPE_LAYOUT = 1;
@@ -190,45 +206,29 @@ public class Injector {
         public static final int TYPE_PLURALS = 14;
         public static final int TYPE_UNKNOWN = -1;
 
-        private static final String TYPE_LAYOUT_DESC = "layout";
-        private static final String TYPE_MENU_DESC = "menu";
-        private static final String TYPE_STYLE_DESC = "style";
-        private static final String TYPE_ANIM_DESC = "anim";
-        private static final String TYPE_DRAWABLE_DESC = "drawable";
-        private static final String TYPE_DIMEN_DESC = "dimen";
-        private static final String TYPE_STRING_DESC = "string";
-        private static final String TYPE_COLOR_DESC = "color";
-        private static final String TYPE_BOOL_DESC = "bool";
-        private static final String TYPE_ID_DESC = "id";
-        private static final String TYPE_INTEGER_DESC = "integer";
-        private static final String TYPE_ARRAY_DESC = "array";
-        private static final String TYPE_FRACTION_DESC = "fraction";
-        private static final String TYPE_PLURALS_DESC = "plurals";
-
-
-        static Map<String, Integer> mapper;
+        static Map<String, Integer> typeMapper;
 
         static {
-            mapper = new HashMap<>();
-            mapper.put(TYPE_LAYOUT_DESC, TYPE_LAYOUT);
-            mapper.put(TYPE_MENU_DESC, TYPE_MENU);
-            mapper.put(TYPE_STYLE_DESC, TYPE_STYLE);
-            mapper.put(TYPE_ANIM_DESC, TYPE_ANIM);
-            mapper.put(TYPE_DRAWABLE_DESC, TYPE_DRAWABLE);
-            mapper.put(TYPE_DIMEN_DESC, TYPE_DIMEN);
-            mapper.put(TYPE_STRING_DESC, TYPE_STRING);
-            mapper.put(TYPE_COLOR_DESC, TYPE_COLOR);
-            mapper.put(TYPE_BOOL_DESC, TYPE_BOOL);
-            mapper.put(TYPE_ID_DESC, TYPE_ID);
-            mapper.put(TYPE_INTEGER_DESC, TYPE_INTEGER);
-            mapper.put(TYPE_ARRAY_DESC, TYPE_ARRAY);
-            mapper.put(TYPE_FRACTION_DESC, TYPE_FRACTION);
-            mapper.put(TYPE_PLURALS_DESC, TYPE_PLURALS);
+            typeMapper = new HashMap<>();
+            typeMapper.put("layout", TYPE_LAYOUT);
+            typeMapper.put("menu", TYPE_MENU);
+            typeMapper.put("style", TYPE_STYLE);
+            typeMapper.put("anim", TYPE_ANIM);
+            typeMapper.put("drawable", TYPE_DRAWABLE);
+            typeMapper.put("dimen", TYPE_DIMEN);
+            typeMapper.put("string", TYPE_STRING);
+            typeMapper.put("color", TYPE_COLOR);
+            typeMapper.put("bool", TYPE_BOOL);
+            typeMapper.put("id", TYPE_ID);
+            typeMapper.put("integer", TYPE_INTEGER);
+            typeMapper.put("array", TYPE_ARRAY);
+            typeMapper.put("fraction", TYPE_FRACTION);
+            typeMapper.put("plurals", TYPE_PLURALS);
         }
 
         static int getResType(Resources res, int resId) {
             String typeName = res.getResourceTypeName(resId);
-            Integer typeCode = mapper.get(typeName);
+            Integer typeCode = typeMapper.get(typeName);
             if (typeCode == null) {
                 return TYPE_UNKNOWN;
             }
@@ -236,11 +236,7 @@ public class Injector {
         }
     }
 
-    public static final int DEFAULT_INVALID_VIEW_ID = -1;
-    public static final String DEFAULT_INVALID_METHOD = "";
-
-    private static final Class<?>[] CLICK_TYPES = {android.view.View.class};
-    private static final Class<?>[] ITEM_CLICK_TYPES = {AdapterView.class, android.view.View.class, int.class, long.class};
+    ///////////////////////////////////////////////////
 
     static class InjectListener implements OnClickListener, android.view.View.OnLongClickListener, AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
 
@@ -302,8 +298,6 @@ public class Injector {
 
     }
 
-    ///////////////////////////////////////////////////
-
     @SuppressLint("Recycle")
     private static void _injectArray(Field field, Object receiver, Resources res, int resId) throws IllegalAccessException, IllegalArgumentException, NotFoundException {
         Class<?> fieldType = field.getType();
@@ -334,7 +328,7 @@ public class Injector {
      * case ResType.TYPE_STYLE:
      *
      * */
-    private static final void _injectRes(ViewFinder viewFinder, Resources res, Field field) throws IllegalAccessException, IllegalArgumentException {
+    private static void _injectRes(ViewFinder viewFinder, Resources res, Field field) throws IllegalAccessException, IllegalArgumentException {
         Res _Res = field.getAnnotation(Res.class);
         if (null == _Res) {
             return;
@@ -373,55 +367,50 @@ public class Injector {
     }
 
     private static void _injectView(ViewFinder viewFinder, Field field) throws IllegalAccessException, IllegalArgumentException, NoSuchMethodException {
-        View _View = field.getAnnotation(View.class);
-        if (null == _View) {
+        View _view = field.getAnnotation(View.class);
+        if (null == _view) {
             return;
         }
-        int viewId = _View.id();
+        int viewId = _view.value();
         android.view.View view = viewFinder.findViewById(viewId);
-        final Object receiver = viewFinder.getObject();
+        Object receiver = viewFinder.getObject();
         field.set(receiver, view);
-
-        if (!_View.click().equals(DEFAULT_INVALID_METHOD)) {
-            System.out.println(_View.click());
-            Method method = receiver.getClass().getDeclaredMethod(_View.click(), CLICK_TYPES);
-            view.setOnClickListener(new InjectListener(receiver, method));
-        }
-
-        if (!_View.longClick().equals(DEFAULT_INVALID_METHOD)) {
-            Method method = receiver.getClass().getDeclaredMethod(_View.longClick(), CLICK_TYPES);
-            view.setOnLongClickListener(new InjectListener(receiver, method));
-        }
-
-        if (!_View.itemClick().equals(DEFAULT_INVALID_METHOD)) {
-            final Method method = receiver.getClass().getDeclaredMethod(_View.itemClick(), ITEM_CLICK_TYPES);
-            ((AdapterView<?>) view).setOnItemClickListener(new InjectListener(receiver, method));
-        }
-
-        if (!_View.itemLongClick().equals(DEFAULT_INVALID_METHOD)) {
-            final Method method = receiver.getClass().getDeclaredMethod(_View.itemLongClick(), ITEM_CLICK_TYPES);
-            ((AdapterView<?>) view).setOnItemLongClickListener(new InjectListener(receiver, method));
-        }
     }
 
-    private static void injectClick(ViewFinder viewFinder, final Method method) {
-        Click _inClick = method.getAnnotation(Click.class);
-        if (null == _inClick) {
-            return;
-        }
+    private static void injectListener(ViewFinder viewFinder, final Method method) {
 
-        int[] viewIds = _inClick.value();
+        Annotation[] annotations = method.getAnnotations();
+        InjectListener injectListener = new InjectListener(viewFinder.getObject(), method);
 
-        OnClickListener onClickListener = new InjectListener(viewFinder.getObject(), method);
-        for (int _viewId : viewIds) {
-            viewFinder.findViewById(_viewId).setOnClickListener(onClickListener);
+        for (Annotation annotation : annotations) {
+            if (annotation.annotationType() == Click.class) {
+                int[] viewIds = ((Click) annotation).value();
+                for (int _viewId : viewIds) {
+                    viewFinder.findViewById(_viewId).setOnClickListener(injectListener);
+                }
+            } else if (annotation.annotationType() == LongClick.class) {
+                int[] viewIds = ((LongClick) annotation).value();
+                for (int _viewId : viewIds) {
+                    viewFinder.findViewById(_viewId).setOnLongClickListener(injectListener);
+                }
+            } else if (annotation.annotationType() == ItemClick.class) {
+                int[] viewIds = ((ItemClick) annotation).value();
+                for (int _viewId : viewIds) {
+                    ((AdapterView<?>) viewFinder.findViewById(_viewId)).setOnItemClickListener(injectListener);
+                }
+            } else if (annotation.annotationType() == ItemLongClick.class) {
+                int[] viewIds = ((ItemLongClick) annotation).value();
+                for (int _viewId : viewIds) {
+                    ((AdapterView<?>) viewFinder.findViewById(_viewId)).setOnItemLongClickListener(injectListener);
+                }
+            }
         }
     }
 
     private static void inject(ViewFinder viewFinder) {
         Resources res = viewFinder.getResources();
-        Field[] fields = viewFinder.getObject().getClass().getDeclaredFields();
 
+        Field[] fields = viewFinder.getObject().getClass().getDeclaredFields();
         for (Field field : fields) {
             boolean f = field.isAccessible();
             field.setAccessible(true);
@@ -439,7 +428,7 @@ public class Injector {
 
         Method[] methods = viewFinder.getObject().getClass().getDeclaredMethods();
         for (Method method : methods) {
-            injectClick(viewFinder, method);
+            injectListener(viewFinder, method);
         }
     }
 

@@ -3,7 +3,7 @@
 
 **如果需要在工作中使用，可以参考更严谨的视图注入框架 [butterknife](https://github.com/JakeWharton/butterknife)**
 
-*暂不支持绑定继承而来的方法*
+*不支持绑定继承而来的字段与方法*
 
 ##使用方法
 
@@ -26,22 +26,19 @@
 
 ####绑定事件
     //普通View
-    @Injector.View(
-            id = R.id.btn_1,
-            click = "btnClickA",
-            longClick = "longClickA"
-    )
+    @Injector.View(R.id.btn_1)
     Button btn1;
 
     //ListView
-    @Injector.View(
-            id = R.id.demo_lv,
-            itemClick = "itemClick",
-            itemLongClick = "itemLongClick"
-    )
+    @Injector.View(R.id.demo_lv)
     ListView lv;
 
-    //将一个click方法绑定到多个view
+    //将click方法绑定到view
+    @Injector.Click(R.id.btn_1)
+    private void btnClickB(View view) {
+        Tip.tip(this, ((Button) view).getText());
+    }
+    //将click方法绑定到多个view
     @Injector.Click({R.id.btn_2, R.id.btn_3, R.id.btn_4})
     private void btnClickB(View view) {
         Tip.tip(this, ((Button) view).getText());
@@ -59,6 +56,7 @@
 
 ####2015.16.05
 1. 重构
+2. 删掉原来的字符串绑定模式，不利于IDE的自动重构
 
 ####2014.12.10
 1. 增加对fragment的支持，需要区分 Fragment 与 v4.Fragment

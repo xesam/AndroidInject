@@ -15,18 +15,13 @@ import dev.xesam.android.less.inject.Injector;
  */
 public class InjectActivity extends Activity {
 
-    @Injector.View(
-            id = R.id.btn_1,
-            click = "btnClickA",
-            longClick = "longClickA"
-    )
+    @Injector.View(R.id.btn_1)
     Button btn1;
 
-    @Injector.View(
-            id = R.id.demo_lv,
-            itemClick = "itemClick",
-            itemLongClick = "itemLongClick"
-    )
+    @Injector.View(R.id.btn_4)
+    Button btn4;
+
+    @Injector.View(R.id.demo_lv)
     ListView lv;
 
     @Injector.Res(R.string.string_1)
@@ -39,6 +34,8 @@ public class InjectActivity extends Activity {
     int[] ia;
     @Injector.Res(R.bool.bool_1)
     boolean bool_1;
+    @Injector.Res(R.color.color_1)
+    int color_1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,8 +49,17 @@ public class InjectActivity extends Activity {
         Tip.log(int_1);
         Tip.log(ia.length);
         Tip.log(bool_1);
+
+        btn4.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                btn4.setText(int_1 + "");
+                btn4.setTextColor(color_1);
+            }
+        });
     }
 
+    @Injector.Click(R.id.btn_1)
     private void btnClickA(View view) {
         int vid = view.getId();
         if (vid == R.id.btn_1) {
@@ -61,24 +67,27 @@ public class InjectActivity extends Activity {
         }
     }
 
-    private boolean longClickA(View view) {
+    @Injector.LongClick(R.id.btn_1)
+    private boolean longClickA(Button view) {
         int vid = view.getId();
         if (vid == R.id.btn_1) {
-            Tip.tip(this, "long click " + ((Button) view).getText());
+            Tip.tip(this, "long click " + view.getText());
         }
         return true;
     }
 
-    @Injector.Click({R.id.btn_2, R.id.btn_3, R.id.btn_4})
-    private void btnClickB(View view) {
-        ((Button) view).setText(string_1);
+    @Injector.Click({R.id.btn_2, R.id.btn_3})
+    private void btnClickB(Button view) {
+        view.setText(string_1);
     }
 
-    public void itemClick(AdapterView<?> parent, View view, int position, long id) {
+    @Injector.ItemClick(R.id.demo_lv)
+    public void itemClick(ListView parent, View view, int position, long id) {
         Tip.tip(this, "lv item click " + position);
     }
 
-    public boolean itemLongClick(AdapterView<?> parent, View view, int position, long id) {
+    @Injector.ItemLongClick(R.id.demo_lv)
+    public boolean itemLongClick(ListView parent, View view, int position, long id) {
         Tip.tip(this, "lv item long click " + position);
         return true;
     }
