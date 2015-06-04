@@ -377,7 +377,7 @@ public class Injector {
         field.set(receiver, view);
     }
 
-    private static void injectListener(ViewFinder viewFinder, final Method method) {
+    private static void _injectListener(ViewFinder viewFinder, final Method method) {
 
         Annotation[] annotations = method.getAnnotations();
         InjectListener injectListener = new InjectListener(viewFinder.getObject(), method);
@@ -407,7 +407,7 @@ public class Injector {
         }
     }
 
-    private static void inject(ViewFinder viewFinder) {
+    public static void inject(ViewFinder viewFinder) {
         Resources res = viewFinder.getResources();
 
         Field[] fields = viewFinder.getObject().getClass().getDeclaredFields();
@@ -428,7 +428,7 @@ public class Injector {
 
         Method[] methods = viewFinder.getObject().getClass().getDeclaredMethods();
         for (Method method : methods) {
-            injectListener(viewFinder, method);
+            _injectListener(viewFinder, method);
         }
     }
 
